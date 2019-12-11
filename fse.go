@@ -359,5 +359,5 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
     }
     frame.end_statistic_ch <- 1
     fmt.Println("All threads end")
-    fmt.Printf("Drop %d requests", high_qps)
+    fmt.Printf("Drop %d requests\n", high_qps)
 }
