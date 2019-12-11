@@ -283,7 +283,7 @@ func (frame *FSEFrame)getStatistics() {
     print_statistics := func () {
             average_latency /= float64(success_count)
             elapsed_sec := time.Now().Sub(current_time).Seconds()
-            fmt.Printf("Last %f seconds: qps %f, avg_latency %f, min_latency %f, max_latency %f, failure %d\n",
+            fmt.Printf("Last %.2f seconds: qps %.2f, avg_latency %.2fms, min_latency %.2fms, max_latency %.2fms, failure %d\n",
                         elapsed_sec,
                         float64(success_count) / elapsed_sec,
                         average_latency,
