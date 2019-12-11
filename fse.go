@@ -258,6 +258,7 @@ type FSEFrame struct {
     failure_ch chan int
     report_ch <-chan time.Time
     end_statistic_ch chan int
+    drop_requests_ch chan int
 }
 
 func (frame *FSEFrame)threadWrapper() {
@@ -277,19 +278,20 @@ func (frame *FSEFrame)threadWrapper() {
 }
 
 func (frame *FSEFrame)getStatistics() {
-    var success_count, failure_count int = 0, 0
+    var success_count, failure_count, drop_count int = 0, 0, 0
     var latency, max_latency, min_latency, average_latency float64 = 0, 0, 9999999999999999, 0
     current_time := time.Now()
     print_statistics := func () {
             average_latency /= float64(success_count)
             elapsed_sec := time.Now().Sub(current_time).Seconds()
-            fmt.Printf("Last %.2f seconds: qps %.2f, avg_latency %.2fms, min_latency %.2fms, max_latency %.2fms, failure %d\n",
+            fmt.Printf("Last %.2f seconds: qps %.2f, avg_latency %.2fms, min_latency %.2fms, max_latency %.2fms, failure %d, drop %d\n",
                         elapsed_sec,
                         float64(success_count) / elapsed_sec,
                         average_latency,
                         min_latency,
                         max_latency,
-                        failure_count)
+                        failure_count,
+                        drop_count)
             success_count, failure_count = 0, 0
             latency, max_latency, min_latency, average_latency = 0, 0, 9999999999999999, 0
             current_time = time.Now()
@@ -307,6 +309,8 @@ func (frame *FSEFrame)getStatistics() {
             success_count += 1
         case <-frame.failure_ch:
             failure_count += 1
+        case <-frame.drop_requests_ch:
+            drop_count += 1
         case <-frame.report_ch:
             print_statistics()
         case <-frame.end_statistic_ch:
@@ -323,6 +327,7 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
     frame.latency_ch = make(chan float64, thread_num)
     frame.end_statistic_ch = make(chan int)
     frame.report_ch = time.NewTicker(time.Second * 10).C
+    frame.drop_requests_ch = make(chan int, qps / 10)
 
     go frame.getStatistics()
     time_interval := time.Second / time.Duration(qps)
@@ -330,7 +335,7 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
         go frame.threadWrapper()
     }
 
-    var sum, high_qps int64 = 0, 0
+    var sum int64 = 0
     stop_thread := false
     ticker := time.NewTicker(time_interval)
     for {
@@ -346,7 +351,7 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
                     fmt.Printf("send %d requests\n", sum)
                 }
             default:
-                high_qps += 1
+                frame.drop_requests_ch <- 1
             }
         }
         if stop_thread {
@@ -359,5 +364,4 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
     }
     frame.end_statistic_ch <- 1
     fmt.Println("All threads end")
-    fmt.Printf("Drop %d requests\n", high_qps)
 }
