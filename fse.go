@@ -292,7 +292,7 @@ func (frame *FSEFrame)getStatistics() {
                         max_latency,
                         failure_count,
                         drop_count)
-            success_count, failure_count = 0, 0
+            success_count, failure_count, drop_count = 0, 0, 0
             latency, max_latency, min_latency, average_latency = 0, 0, 9999999999999999, 0
             current_time = time.Now()
     }
