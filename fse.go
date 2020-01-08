@@ -130,7 +130,7 @@ func EncodeFeature(feature *[]float32) *string {
     buffer := new(bytes.Buffer)
     err := binary.Write(buffer, binary.LittleEndian, feature)
     if err != nil {
-        fmt.Fprintf(os.Stderr, "binary.Write failed: %d\n", err.Error())
+        fmt.Fprintf(os.Stderr, "binary.Write failed: %s\n", err.Error())
     }
 
     feature_bytes := make([]byte, len(*feature) * 4)
