@@ -177,12 +177,14 @@ type FSETask interface {
 }
 
 type SearchTask struct {
-    UrlPrefix string
+    IPPort string
     Repositories []string
     MaxCandidates int
+    url_prefix string
 }
 
 func (t SearchTask) Run() int {
+    t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(384)
     encoded_string := EncodeFeature(feature)
 
@@ -200,14 +202,16 @@ func (t SearchTask) Run() int {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
     }
 
-    return postAndCheck(bytes, t.UrlPrefix + "search")
+    return postAndCheck(bytes, t.url_prefix + "search")
 }
 
 type CompareTask struct {
-    UrlPrefix string
+    IPPort string
+    url_prefix string
 }
 
 func (t CompareTask) Run() int {
+    t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature1 := GenerateRandomFeature(384)
     encoded_string1 := EncodeFeature(feature1)
     feature2 := GenerateRandomFeature(384)
@@ -227,16 +231,18 @@ func (t CompareTask) Run() int {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
     }
 
-    return postAndCheck(bytes, t.UrlPrefix + "compare")
+    return postAndCheck(bytes, t.url_prefix + "compare")
 }
 
 type EntityTask struct {
-    UrlPrefix string
+    IPPort string
     RepoName string
     FeatureLength int
+    url_prefix string
 }
 
 func (t EntityTask) Run() int {
+    t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(t.FeatureLength)
     encoded_string := EncodeFeature(feature)
     entity_data := generateDefaultEntityData(encoded_string)
@@ -247,7 +253,7 @@ func (t EntityTask) Run() int {
         return -1
     }
 
-    return postAndCheck(bytes, t.UrlPrefix + t.RepoName + "/entities")
+    return postAndCheck(bytes, t.url_prefix + t.RepoName + "/entities")
 }
 
 type FSEFrame struct {
