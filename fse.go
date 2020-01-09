@@ -173,7 +173,7 @@ func postAndCheck(request_bytes []byte, url string) int {
 }
 
 type FSETask interface {
-    Run() int
+    run() int
 }
 
 type SearchTask struct {
@@ -183,7 +183,7 @@ type SearchTask struct {
     url_prefix string
 }
 
-func (t SearchTask) Run() int {
+func (t SearchTask) run() int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(384)
     encoded_string := EncodeFeature(feature)
@@ -210,7 +210,7 @@ type CompareTask struct {
     url_prefix string
 }
 
-func (t CompareTask) Run() int {
+func (t CompareTask) run() int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature1 := GenerateRandomFeature(384)
     encoded_string1 := EncodeFeature(feature1)
@@ -241,7 +241,7 @@ type EntityTask struct {
     url_prefix string
 }
 
-func (t EntityTask) Run() int {
+func (t EntityTask) run() int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(t.FeatureLength)
     encoded_string := EncodeFeature(feature)
@@ -272,7 +272,7 @@ func (frame *FSEFrame)threadWrapper() {
         select {
         case <-frame.start_ch:
             start_time := time.Now()
-            if frame.Task.Run() == 0 {
+            if frame.Task.run() == 0 {
                 frame.latency_ch <- time.Now().Sub(start_time).Seconds() * 1000
             } else {
                 frame.failure_ch <- 1
