@@ -49,11 +49,16 @@ type objectItem struct {
     Data entityData `json:"data"`
 }
 
+type compareObject struct {
+    ID string `json:"id"`
+    Data entityData `json:"data"`
+}
+
 type compareBody struct {
     Type string `json:"type"`
     Threshold float32 `json:"threshold"`
-    MObjects []objectItem `json:"m_objects"`
-    NObjects []objectItem `json:"n_objects"`
+    MObjects []compareObject `json:"m_objects"`
+    NObjects []compareObject `json:"n_objects"`
 }
 
 func generateDefaultEntityData(value *string) *entityData {
@@ -116,7 +121,15 @@ func generateObjectItem(id string, data *entityData) *objectItem {
     return return_object_item
 }
 
-func generateCompareBody(m_objects, n_objects []objectItem) *compareBody {
+func generateCompareObject(id string, data *entityData) *compareObject {
+    return_object_item := &compareObject{
+        ID: id,
+        Data: *data,
+    }
+    return return_object_item
+}
+
+func generateCompareBody(m_objects, n_objects []compareObject) *compareBody {
     ret_compare_body := &compareBody{
         Type: "face",
         Threshold: 0,
@@ -220,10 +233,10 @@ func (t CompareTask) run() int {
     entity_data1 := generateDefaultEntityData(encoded_string1)
     entity_data2 := generateDefaultEntityData(encoded_string2)
 
-    m_objects := make([]objectItem, 0, 1)
-    n_objects := make([]objectItem, 0, 1)
-    m_objects = append(m_objects, *generateObjectItem("m-di-1", entity_data1))
-    n_objects = append(n_objects, *generateObjectItem("n-di-1", entity_data2))
+    m_objects := make([]compareObject, 0, 1)
+    n_objects := make([]compareObject, 0, 1)
+    m_objects = append(m_objects, *generateCompareObject("m-id-1", entity_data1))
+    n_objects = append(n_objects, *generateCompareObject("n-id-1", entity_data2))
     compare_body := generateCompareBody(m_objects, n_objects)
 
     bytes, err := json.Marshal(*compare_body)
