@@ -103,7 +103,6 @@ func GenerateRandomFeature(feature_length int) *[]float32 {
     rand.Seed(time.Now().UnixNano())
     for i := range feature {
         feature[i] = rand.Float32()
-        feature[i] = 0.01
         sum += feature[i] * feature[i]
     }
     sum = float32(math.Sqrt(float64(sum)))
