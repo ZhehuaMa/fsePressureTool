@@ -13,6 +13,7 @@ import (
     "net/http"
     "io"
     "github.com/google/uuid"
+    "strconv"
 )
 
 var transport = &http.Transport{
@@ -185,7 +186,7 @@ func postAndCheck(request_bytes []byte, url string) int {
 }
 
 type FSETask interface {
-    run() int
+    run(int64) int
 }
 
 type SearchTask struct {
@@ -193,9 +194,10 @@ type SearchTask struct {
     Repositories []string
     MaxCandidates int
     url_prefix string
+    total_feature_num int64
 }
 
-func (t SearchTask) run() int {
+func (t SearchTask) run(int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(384)
     encoded_string := EncodeFeature(feature)
@@ -220,9 +222,10 @@ func (t SearchTask) run() int {
 type CompareTask struct {
     IPPort string
     url_prefix string
+    total_feature_num int64
 }
 
-func (t CompareTask) run() int {
+func (t CompareTask) run(int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature1 := GenerateRandomFeature(384)
     encoded_string1 := EncodeFeature(feature1)
@@ -246,19 +249,43 @@ func (t CompareTask) run() int {
     return postAndCheck(bytes, t.url_prefix + "compare")
 }
 
+type TimeLocationOption struct {
+    StartTime int64
+    EndTime int64
+    LocationNum int
+}
+
 type EntityTask struct {
     IPPort string
     RepoName string
     FeatureLength int
+    Option TimeLocationOption
     url_prefix string
+    total_feature_num int64
 }
 
-func (t EntityTask) run() int {
+func setEntityTimeLocation(item *objectItem, option *TimeLocationOption, num, total_feature_num int64) {
+    item.LocationID = strconv.Itoa(int(num) % option.LocationNum)
+
+    start_ms := time.Duration(option.StartTime) * time.Millisecond
+    end_ms := time.Duration(option.StartTime) * time.Millisecond
+    time_range := end_ms - start_ms
+    if time_range <= 0 {
+        item.Time = 0
+        return
+    }
+
+    time_step := int64(time_range) / total_feature_num
+    item.Time = num * time_step + time_step / 2
+}
+
+func (t EntityTask) run(num int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(t.FeatureLength)
     encoded_string := EncodeFeature(feature)
     entity_data := generateDefaultEntityData(encoded_string)
     item := generateEntityItem(entity_data, uuid.New().String(), "0", 0)
+    setEntityTimeLocation(item, &t.Option, num, t.total_feature_num)
     bytes, err := json.Marshal(*item)
     if err != nil {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
@@ -270,7 +297,7 @@ func (t EntityTask) run() int {
 
 type FSEFrame struct {
     Task FSETask
-    start_ch chan int
+    start_ch chan int64
     end_ch chan int
     latency_ch chan float64
     failure_ch chan int
@@ -282,9 +309,9 @@ type FSEFrame struct {
 func (frame *FSEFrame)threadWrapper() {
     for {
         select {
-        case <-frame.start_ch:
+        case id := <-frame.start_ch:
             start_time := time.Now()
-            if frame.Task.run() == 0 {
+            if frame.Task.run(id) == 0 {
                 frame.latency_ch <- time.Now().Sub(start_time).Seconds() * 1000
             } else {
                 frame.failure_ch <- 1
@@ -339,7 +366,7 @@ func (frame *FSEFrame)getStatistics() {
 }
 
 func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
-    frame.start_ch = make(chan int)
+    frame.start_ch = make(chan int64)
     frame.end_ch = make(chan int)
     frame.failure_ch = make(chan int)
     frame.latency_ch = make(chan float64, thread_num)
@@ -360,7 +387,7 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
         select {
         case <-ticker.C:
             select {
-            case frame.start_ch <- 1:
+            case frame.start_ch <- sum:
                 sum += 1
                 if sum >= max_count {
                     fmt.Printf("sum: %d, break now\n", sum)
