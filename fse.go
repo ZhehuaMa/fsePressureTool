@@ -186,7 +186,7 @@ func postAndCheck(request_bytes []byte, url string) int {
 }
 
 type FSETask interface {
-    run(int64) int
+    run(int64, int64) int
 }
 
 type SearchTask struct {
@@ -194,10 +194,9 @@ type SearchTask struct {
     Repositories []string
     MaxCandidates int
     url_prefix string
-    total_feature_num int64
 }
 
-func (t SearchTask) run(int64) int {
+func (t SearchTask) run(int64, int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(384)
     encoded_string := EncodeFeature(feature)
@@ -222,10 +221,9 @@ func (t SearchTask) run(int64) int {
 type CompareTask struct {
     IPPort string
     url_prefix string
-    total_feature_num int64
 }
 
-func (t CompareTask) run(int64) int {
+func (t CompareTask) run(int64, int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature1 := GenerateRandomFeature(384)
     encoded_string1 := EncodeFeature(feature1)
@@ -261,31 +259,30 @@ type EntityTask struct {
     FeatureLength int
     Option TimeLocationOption
     url_prefix string
-    total_feature_num int64
 }
 
 func setEntityTimeLocation(item *objectItem, option *TimeLocationOption, num, total_feature_num int64) {
     item.LocationID = strconv.Itoa(int(num) % option.LocationNum)
 
     start_ms := time.Duration(option.StartTime) * time.Millisecond
-    end_ms := time.Duration(option.StartTime) * time.Millisecond
+    end_ms := time.Duration(option.EndTime) * time.Millisecond
     time_range := end_ms - start_ms
     if time_range <= 0 {
         item.Time = 0
         return
     }
 
-    time_step := int64(time_range) / total_feature_num
-    item.Time = num * time_step + time_step / 2
+    time_step := time_range / time.Duration(total_feature_num) / time.Millisecond
+    item.Time = num * int64(time_step) + int64(time_step) / 2
 }
 
-func (t EntityTask) run(num int64) int {
+func (t EntityTask) run(num, total_feature_num int64) int {
     t.url_prefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
     feature := GenerateRandomFeature(t.FeatureLength)
     encoded_string := EncodeFeature(feature)
     entity_data := generateDefaultEntityData(encoded_string)
     item := generateEntityItem(entity_data, uuid.New().String(), "0", 0)
-    setEntityTimeLocation(item, &t.Option, num, t.total_feature_num)
+    setEntityTimeLocation(item, &t.Option, num, total_feature_num)
     bytes, err := json.Marshal(*item)
     if err != nil {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
@@ -304,6 +301,7 @@ type FSEFrame struct {
     report_ch <-chan time.Time
     end_statistic_ch chan int
     drop_requests_ch chan int
+    total_feature_num int64
 }
 
 func (frame *FSEFrame)threadWrapper() {
@@ -311,7 +309,7 @@ func (frame *FSEFrame)threadWrapper() {
         select {
         case id := <-frame.start_ch:
             start_time := time.Now()
-            if frame.Task.run(id) == 0 {
+            if frame.Task.run(id, frame.total_feature_num) == 0 {
                 frame.latency_ch <- time.Now().Sub(start_time).Seconds() * 1000
             } else {
                 frame.failure_ch <- 1
@@ -373,6 +371,7 @@ func (frame *FSEFrame)RunTask(qps, max_count int64, thread_num int) {
     frame.end_statistic_ch = make(chan int)
     frame.report_ch = time.NewTicker(time.Second * 10).C
     frame.drop_requests_ch = make(chan int, qps / 10)
+    frame.total_feature_num = max_count
 
     go frame.getStatistics()
     time_interval := time.Second / time.Duration(qps)
