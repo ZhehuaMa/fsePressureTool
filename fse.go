@@ -18,17 +18,22 @@ import (
 
 var transport = &http.Transport{
     MaxIdleConnsPerHost: 500,
-    MaxConnsPerHost: 1000,
+    MaxConnsPerHost:     1000,
 }
 
 var client = &http.Client{
     Transport: transport,
 }
 
+const (
+    httpStr   = "http://"
+    prefixUrl = "/x-api/v1/repositories/"
+)
+
 type EntityData struct {
-    Type string `json:"type"`
+    Type    string `json:"type"`
     Version string `json:"version"`
-    Value string `json:"value"`
+    Value   string `json:"value"`
 }
 
 type IncludeItem struct {
@@ -36,18 +41,18 @@ type IncludeItem struct {
 }
 
 type SearchBody struct {
-    Type string              `json:"type"`
-    Include []IncludeItem    `json:"include"`
-    IncludeThreshold float32 `json:"include_threshold"`
-    Repositories []string `json:"repositories"`
-    MaxCandidates int `json:"max_candidates"`
+    Type             string        `json:"type"`
+    Include          []IncludeItem `json:"include"`
+    IncludeThreshold float32       `json:"include_threshold"`
+    Repositories     []string      `json:"repositories"`
+    MaxCandidates    int           `json:"max_candidates"`
 }
 
 type ObjectItem struct {
-    ID string `json:"id"`
-    LocationID string `json:"location_id"`
-    Time int64      `json:"time"`
-    Data EntityData `json:"data"`
+    ID         string     `json:"id"`
+    LocationID string     `json:"location_id"`
+    Time       int64      `json:"time"`
+    Data       EntityData `json:"data"`
 }
 
 type CompareObject struct {
@@ -56,17 +61,17 @@ type CompareObject struct {
 }
 
 type CompareBody struct {
-    Type string `json:"type"`
-    Threshold float32        `json:"threshold"`
-    MObjects []CompareObject `json:"m_objects"`
-    NObjects []CompareObject `json:"n_objects"`
+    Type      string          `json:"type"`
+    Threshold float32         `json:"threshold"`
+    MObjects  []CompareObject `json:"m_objects"`
+    NObjects  []CompareObject `json:"n_objects"`
 }
 
 func generateDefaultEntityData(value *string) *EntityData {
     entityData := &EntityData{
-        Type: "feature",
-        Version: "1.8.0.1",
-        Value: *value,
+        Type:    "feature",
+        Version: "2.7.3.0",
+        Value:   *value,
     }
     return entityData
 }
@@ -80,25 +85,25 @@ func generateDefaultIncludeItem(data *EntityData) *IncludeItem {
 
 func generateEntityItem(data *EntityData, id, location string, time int64) *ObjectItem {
     objItem := &ObjectItem{
-        Data: *data,
-        ID: id,
+        Data:       *data,
+        ID:         id,
         LocationID: location,
-        Time: time,
+        Time:       time,
     }
     return objItem
 }
 
 func generateDefaultSearchBody(includeItem *IncludeItem) *SearchBody {
     searchBody := &SearchBody{
-        Type: "face",
-        Include: []IncludeItem{*includeItem},
+        Type:             "face",
+        Include:          []IncludeItem{*includeItem},
         IncludeThreshold: 0,
-        MaxCandidates: 3,
+        MaxCandidates:    3,
     }
     return searchBody
 }
 
-func GenerateRandomFeature(featureLength int) *[]float32 {
+func GenerateRandomFeature(featureLength int) []float32 {
     feature := make([]float32, featureLength)
     var sum float32 = 0
     rand.Seed(time.Now().UnixNano())
@@ -110,12 +115,12 @@ func GenerateRandomFeature(featureLength int) *[]float32 {
     for i := range feature {
         feature[i] /= sum
     }
-    return &feature
+    return feature
 }
 
 func generateCompareObject(id string, data *EntityData) *CompareObject {
     returnObjectItem := &CompareObject{
-        ID: id,
+        ID:   id,
         Data: *data,
     }
     return returnObjectItem
@@ -131,14 +136,14 @@ func generateCompareBody(mObjects, nObjects []CompareObject) *CompareBody {
     return retCompareBody
 }
 
-func EncodeFeature(feature *[]float32) *string {
+func EncodeFeature(feature []float32) *string {
     buffer := new(bytes.Buffer)
     err := binary.Write(buffer, binary.LittleEndian, feature)
     if err != nil {
         fmt.Fprintf(os.Stderr, "binary.Write failed: %s\n", err.Error())
     }
 
-    featureBytes := make([]byte, len(*feature) * 4)
+    featureBytes := make([]byte, len(feature)*4)
     if n, err := buffer.Read(featureBytes); err != nil {
         fmt.Fprintf(os.Stderr, "buffer.Read failed: %s\n", err.Error())
         fmt.Fprintf(os.Stderr, "buffer.Read number: %d\n", n)
@@ -157,10 +162,10 @@ func postAndCheck(requestBytes []byte, url string) int {
 
     defer resp.Body.Close()
 
-    responseBodyBytes := make([]byte, 1024 * 100)
+    responseBodyBytes := make([]byte, 1024*100)
     n, err := resp.Body.Read(responseBodyBytes)
 
-    if resp.StatusCode / 100 != 2 {
+    if resp.StatusCode/100 != 2 {
         fmt.Fprintf(os.Stderr, "Status code is %d: %s\n", resp.StatusCode, string(responseBodyBytes))
         return -1
     }
@@ -177,19 +182,19 @@ func postAndCheck(requestBytes []byte, url string) int {
     return 0
 }
 
-type Task interface {
-    run(int64, int64) int
+type task interface {
+    run(int64, int) int
 }
 
 type SearchTask struct {
-    IPPort string
-    Repositories []string
+    IPPort        string
+    Repositories  []string
     MaxCandidates int
-    urlPrefix     string
+    url           string
 }
 
 func (t SearchTask) run(int64, int64) int {
-    t.urlPrefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
+    t.url = httpStr + t.IPPort + prefixUrl + "search"
     feature := GenerateRandomFeature(384)
     encodedString := EncodeFeature(feature)
 
@@ -207,16 +212,16 @@ func (t SearchTask) run(int64, int64) int {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
     }
 
-    return postAndCheck(numOfBytes, t.urlPrefix+ "search")
+    return postAndCheck(numOfBytes, t.url)
 }
 
 type CompareTask struct {
-    IPPort    string
-    urlPrefix string
+    IPPort string
+    url    string
 }
 
 func (t CompareTask) run(int64, int64) int {
-    t.urlPrefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
+    t.url = httpStr + t.IPPort + prefixUrl + "compare"
     feature1 := GenerateRandomFeature(384)
     encodedString1 := EncodeFeature(feature1)
     feature2 := GenerateRandomFeature(384)
@@ -236,25 +241,25 @@ func (t CompareTask) run(int64, int64) int {
         fmt.Fprintf(os.Stderr, "Fail to marshal json: %s\n", err.Error())
     }
 
-    return postAndCheck(numOfBytes, t.urlPrefix+ "compare")
+    return postAndCheck(numOfBytes, t.url)
 }
 
 type TimeLocationOption struct {
-    StartTime int64
-    EndTime int64
+    StartTime   int64
+    EndTime     int64
     LocationNum int
 }
 
 type EntityTask struct {
-    IPPort string
-    RepoName string
+    IPPort        string
+    RepoName      string
     FeatureLength int
-    Option    TimeLocationOption
-    urlPrefix string
+    Option        TimeLocationOption
+    url           string
 }
 
 func setEntityTimeLocation(item *ObjectItem, option *TimeLocationOption, num, totalFeatureNum int64) {
-    item.LocationID = strconv.Itoa(int(num) % option.LocationNum)
+    item.LocationID = strconv.Itoa(int(num % int64(option.LocationNum)))
 
     start := time.Duration(option.StartTime) * time.Millisecond
     end := time.Duration(option.EndTime) * time.Millisecond
@@ -265,11 +270,11 @@ func setEntityTimeLocation(item *ObjectItem, option *TimeLocationOption, num, to
     }
 
     timeStep := timeRange / time.Duration(totalFeatureNum) / time.Millisecond
-    item.Time = num * int64(timeStep) + int64(timeStep) / 2
+    item.Time = num*int64(timeStep) + int64(timeStep)/2
 }
 
 func (t EntityTask) run(num, totalFeatureNum int64) int {
-    t.urlPrefix = "http://" + t.IPPort + "/x-api/v1/repositories/"
+    t.url = httpStr + t.IPPort + prefixUrl + t.RepoName + "/entities"
     feature := GenerateRandomFeature(t.FeatureLength)
     encodedString := EncodeFeature(feature)
     entityData := generateDefaultEntityData(encodedString)
@@ -281,69 +286,80 @@ func (t EntityTask) run(num, totalFeatureNum int64) int {
         return -1
     }
 
-    return postAndCheck(numOfBytes, t.urlPrefix+ t.RepoName + "/entities")
+    return postAndCheck(numOfBytes, t.url)
+}
+
+type result struct {
+    success   bool
+    latencyMs int64
 }
 
 type Frame struct {
-    Task    Task
-    startCh chan int64
-    endCh      chan int
-    latencyCh chan float64
-    failureCh        chan int
-    reportCh         <-chan time.Time
-    endStatisticCh    chan int
-    dropRequestsCh  chan int
-    totalFeatureNum int64
+    Task            task
+    startCh         chan int64
+    endCh           chan struct{}
+    resultCh        chan *result
+    reportCh        <-chan time.Time
+    endStatisticCh  chan struct{}
+    dropRequestsCh  chan struct{}
+    totalFeatureNum int
 }
 
-func (frame *Frame)threadWrapper() {
+func (frame *Frame) threadWrapper() {
     for {
         select {
         case id := <-frame.startCh:
             startTime := time.Now()
+            res := new(result)
             if frame.Task.run(id, frame.totalFeatureNum) == 0 {
-                frame.latencyCh <- time.Now().Sub(startTime).Seconds() * 1000
+                res.success = true
+                res.latencyMs = time.Now().Sub(startTime).Milliseconds()
             } else {
-                frame.failureCh <- 1
+                res.success = false
             }
+            frame.resultCh <- res
         case <-frame.endCh:
             return
         }
     }
 }
 
-func (frame *Frame)getStatistics() {
-    var successCount, failureCount, dropCount = 0, 0, 0
-    var latency, maxLatency, minLatency, averageLatency float64 = 0, 0, 9999999999999999, 0
+func (frame *Frame) getStatistics() {
+    successCount, failureCount, dropCount := 0, 0, 0
+    var maxLatency, minLatency, totalLatency int64 = 0, math.MaxInt64, 0
     currentTime := time.Now()
-    printStatistics := func () {
-            averageLatency /= float64(successCount)
-            elapsedSec := time.Now().Sub(currentTime).Seconds()
-            fmt.Printf("Last %.2f seconds: qps %.2f, avg_latency %.2fms, min_latency %.2fms, max_latency %.2fms, failure %d, drop %d\n",
-                elapsedSec,
-                        float64(successCount) /elapsedSec,
-                averageLatency,
-                minLatency,
-                maxLatency,
-                failureCount,
-                dropCount)
-            successCount, failureCount, dropCount = 0, 0, 0
-            latency, maxLatency, minLatency, averageLatency = 0, 0, 9999999999999999, 0
-            currentTime = time.Now()
+    printStatistics := func() {
+        averageLatency := float64(totalLatency)
+        averageLatency /= float64(successCount)
+        elapsedSec := time.Now().Sub(currentTime).Seconds()
+        fmt.Printf("Last %.2f seconds: qps %.2f, avg_latency %.2fms, min_latency %dms, max_latency %dms, failure %d, drop %d\n",
+            elapsedSec,
+            float64(successCount)/elapsedSec,
+            averageLatency,
+            minLatency,
+            maxLatency,
+            failureCount,
+            dropCount)
+        successCount, failureCount, dropCount = 0, 0, 0
+        maxLatency, minLatency, totalLatency = 0, math.MaxFloat64, 0
+        currentTime = time.Now()
     }
     for {
         select {
-        case latency = <-frame.latencyCh:
-            if maxLatency < latency {
-                maxLatency = latency
+        case res := <-frame.resultCh:
+            if res.success {
+                latency := res.latencyMs
+                if maxLatency < latency {
+                    maxLatency = latency
+                }
+                if minLatency > latency {
+                    minLatency = latency
+                }
+                totalLatency += latency
+                successCount += 1
+            } else {
+                failureCount += 1
             }
-            if minLatency > latency {
-                minLatency = latency
-            }
-            averageLatency += latency
-            successCount += 1
-        case <-frame.failureCh:
-            failureCount += 1
         case <-frame.dropRequestsCh:
             dropCount += 1
         case <-frame.reportCh:
@@ -355,14 +371,13 @@ func (frame *Frame)getStatistics() {
     }
 }
 
-func (frame *Frame)RunTask(qps, maxCount int64, threadNum int) {
+func (frame *Frame) RunTask(qps, maxCount, threadNum int) {
     frame.startCh = make(chan int64)
-    frame.endCh = make(chan int)
-    frame.failureCh = make(chan int)
-    frame.latencyCh = make(chan float64, threadNum)
-    frame.endStatisticCh = make(chan int)
+    frame.endCh = make(chan struct{})
+    frame.resultCh = make(chan *result, threadNum)
+    frame.endStatisticCh = make(chan struct{})
     frame.reportCh = time.NewTicker(time.Second * 10).C
-    frame.dropRequestsCh = make(chan int, qps / 10)
+    frame.dropRequestsCh = make(chan struct{}, qps/10)
     frame.totalFeatureNum = maxCount
 
     go frame.getStatistics()
@@ -371,33 +386,28 @@ func (frame *Frame)RunTask(qps, maxCount int64, threadNum int) {
         go frame.threadWrapper()
     }
 
-    var sum int64 = 0
-    stopThread := false
+    var sum = 0
     ticker := time.NewTicker(timeInterval)
+forLoop:
     for {
+        <-ticker.C
         select {
-        case <-ticker.C:
-            select {
-            case frame.startCh <- sum:
-                sum += 1
-                if sum >= maxCount {
-                    fmt.Printf("sum: %d, break now\n", sum)
-                    stopThread = true
-                } else if sum % 10000 == 0 {
-                    fmt.Printf("send %d requests\n", sum)
-                }
-            default:
-                frame.dropRequestsCh <- 1
+        case frame.startCh <- int64(sum):
+            sum += 1
+            if sum >= maxCount {
+                fmt.Printf("sum: %d, break now\n", sum)
+                break forLoop
+            } else if sum%10000 == 0 {
+                fmt.Printf("send %d requests\n", sum)
             }
-        }
-        if stopThread {
-            break
+        default:
+            frame.dropRequestsCh <- struct{}{}
         }
     }
 
     for i := 0; i < threadNum; i++ {
-        frame.endCh <- 1
+        frame.endCh <- struct{}{}
     }
-    frame.endStatisticCh <- 1
+    frame.endStatisticCh <- struct{}{}
     fmt.Println("All threads end")
 }
