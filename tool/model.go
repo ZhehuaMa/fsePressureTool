@@ -60,6 +60,7 @@ type TimeLocationOption struct {
 type EntityTask struct {
     IPPort        string
     RepoName      string
+    IdType        string
     FeatureLength int
     Option        TimeLocationOption
     url           string

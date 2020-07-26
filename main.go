@@ -14,11 +14,6 @@ const (
     compareTask = "compareTask"
 )
 
-const (
-    uuid = "uuid"
-    num  = "num"
-)
-
 var (
     addr        string
     repo        string
@@ -40,7 +35,7 @@ func initFlags() {
     flag.StringVar(&repo, "repo", "repo", "Repo name")
     flag.StringVar(&taskType, "type", entityTask,
         "Task type: 'entityTask' for adding features, 'searchTask' for searching features, 'compareTask' for comparing task")
-    flag.StringVar(&idType, "id", uuid, "ID type: 'uuid' for UUID, 'num' for number sequence, starting from 0")
+    flag.StringVar(&idType, "id", tool.Uid, "ID type: 'uuid' for UUID, 'num' for number sequence, starting from 0")
     flag.Int64Var(&startTimeMs, "st", 0, "The start time in millisecond, only used in 'entityTask' type")
     flag.Int64Var(&endTimeMs, "et", 0, "The end time in millisecond, only used in 'entityTask' type")
     flag.IntVar(&topk, "topk", 3, "Top K")
@@ -56,7 +51,7 @@ func initFlags() {
         fmt.Fprintln(os.Stderr, "Unknown task type", taskType)
         os.Exit(-1)
     }
-    if idType != uuid && idType != num {
+    if idType != tool.Uid && idType != tool.Num {
         fmt.Fprintln(os.Stderr, "Unknown ID type", idType)
         os.Exit(-1)
     }
@@ -81,6 +76,7 @@ func main() {
             IPPort:        addr,
             RepoName:      repo,
             FeatureLength: featLen,
+            IdType:        idType,
             Option:        option,
         }
         frame := tool.Frame{Task: task}

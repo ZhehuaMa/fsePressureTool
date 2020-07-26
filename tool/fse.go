@@ -30,6 +30,11 @@ const (
     prefixUrl = "/x-api/v1/repositories/"
 )
 
+const (
+    Uid = "uuid"
+    Num  = "num"
+)
+
 func generateDefaultEntityData(value *string) *EntityData {
     entityData := &EntityData{
         Type:    "feature",
@@ -215,7 +220,13 @@ func (t EntityTask) run(num, totalFeatureNum int64) int {
     feature := GenerateRandomFeature(t.FeatureLength)
     encodedString := EncodeFeature(feature)
     entityData := generateDefaultEntityData(encodedString)
-    item := generateEntityItem(entityData, uuid.New().String(), "0", 0)
+    var id string
+    if t.IdType == Uid {
+        id = uuid.New().String()
+    } else {
+        id = strconv.Itoa(int(num))
+    }
+    item := generateEntityItem(entityData, id, "0", 0)
     setEntityTimeLocation(item, &t.Option, num, totalFeatureNum)
     numOfBytes, err := json.Marshal(*item)
     if err != nil {
@@ -318,7 +329,7 @@ forLoop:
     for {
         <-ticker.C
         select {
-        case frame.startCh <- int64(sum):
+        case frame.startCh <- sum:
             sum += 1
             if sum >= maxCount {
                 fmt.Printf("sum: %d, break now\n", sum)
