@@ -297,7 +297,7 @@ func (frame *Frame) getStatistics() {
     }
 }
 
-func (frame *Frame) RunTask(qps, maxCount, threadNum int) {
+func (frame *Frame) RunTask(qps int, maxCount int64, threadNum int) {
     frame.startCh = make(chan int64)
     frame.endCh = make(chan struct{})
     frame.resultCh = make(chan *result, threadNum)
@@ -312,7 +312,7 @@ func (frame *Frame) RunTask(qps, maxCount, threadNum int) {
         go frame.threadWrapper()
     }
 
-    var sum = 0
+    var sum int64 = 0
     ticker := time.NewTicker(timeInterval)
 forLoop:
     for {

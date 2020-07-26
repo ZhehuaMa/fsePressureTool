@@ -3,7 +3,7 @@ package main
 import (
     "flag"
     "fmt"
-    "github.com/zhehuama/fse_go/tool"
+    "github.com/zhehuama/fsePressureTool/tool"
     "os"
     "strings"
 )
@@ -26,12 +26,12 @@ var (
     idType      string
     startTimeMs int64
     endTimeMs   int64
+    maxCount    int64
     topk        int
     featLen     int
     LocNum      int
     qps         int
     threadNum   int
-    maxCount    int
     repos       []string
 )
 
@@ -48,7 +48,7 @@ func initFlags() {
     flag.IntVar(&LocNum, "loc", 1, "The number of locations, only used in 'entityTask' type")
     flag.IntVar(&qps, "qps", 1, "QPS")
     flag.IntVar(&threadNum, "t", 1, "The number of threads")
-    flag.IntVar(&maxCount, "max", 10, "Maximum times the task is executed")
+    flag.Int64Var(&maxCount, "max", 10, "Maximum times the task is executed")
 
     flag.Parse()
 

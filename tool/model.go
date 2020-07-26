@@ -73,5 +73,5 @@ type Frame struct {
     reportCh        <-chan time.Time
     endStatisticCh  chan struct{}
     dropRequestsCh  chan struct{}
-    totalFeatureNum int
+    totalFeatureNum int64
 }
