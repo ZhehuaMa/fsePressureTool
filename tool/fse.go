@@ -267,7 +267,7 @@ func (frame *Frame) getStatistics() {
             failureCount,
             dropCount)
         successCount, failureCount, dropCount = 0, 0, 0
-        maxLatency, minLatency, totalLatency = 0, math.MaxFloat64, 0
+        maxLatency, minLatency, totalLatency = 0, math.MaxInt64, 0
         currentTime = time.Now()
     }
     for {
