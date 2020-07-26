@@ -146,7 +146,7 @@ func postAndCheck(requestBytes []byte, url string) int {
 }
 
 type task interface {
-    run(int64, int) int
+    run(int64, int64) int
 }
 
 func (t SearchTask) run(int64, int64) int {
