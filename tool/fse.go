@@ -1,4 +1,4 @@
-package fse
+package tool
 
 import (
     "bytes"
