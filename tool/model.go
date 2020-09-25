@@ -43,12 +43,14 @@ type SearchTask struct {
     IPPort        string
     Repositories  []string
     MaxCandidates int
+    FeatureLength int
     url           string
 }
 
 type CompareTask struct {
-    IPPort string
-    url    string
+    IPPort        string
+    FeatureLength int
+    url           string
 }
 
 type TimeLocationOption struct {

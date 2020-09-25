@@ -156,7 +156,7 @@ type task interface {
 
 func (t SearchTask) run(int64, int64) int {
     t.url = httpStr + t.IPPort + prefixUrl + "search"
-    feature := GenerateRandomFeature(384)
+    feature := GenerateRandomFeature(t.FeatureLength)
     encodedString := EncodeFeature(feature)
 
     entityData := generateDefaultEntityData(encodedString)
@@ -178,9 +178,9 @@ func (t SearchTask) run(int64, int64) int {
 
 func (t CompareTask) run(int64, int64) int {
     t.url = httpStr + t.IPPort + prefixUrl + "compare"
-    feature1 := GenerateRandomFeature(384)
+    feature1 := GenerateRandomFeature(t.FeatureLength)
     encodedString1 := EncodeFeature(feature1)
-    feature2 := GenerateRandomFeature(384)
+    feature2 := GenerateRandomFeature(t.FeatureLength)
     encodedString2 := EncodeFeature(feature2)
 
     entityData1 := generateDefaultEntityData(encodedString1)

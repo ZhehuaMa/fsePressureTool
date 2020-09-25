@@ -89,12 +89,16 @@ func main() {
         task := tool.SearchTask{
             IPPort:        addr,
             MaxCandidates: topk,
+            FeatureLength: featLen,
         }
         task.Repositories = repos
         frame := tool.Frame{Task: task}
         frame.RunTask(qps, maxCount, threadNum)
     case compareTask:
-        task := tool.CompareTask{IPPort: addr}
+        task := tool.CompareTask{
+            IPPort:        addr,
+            FeatureLength: featLen,
+        }
         frame := tool.Frame{Task: task}
         frame.RunTask(qps, maxCount, threadNum)
     }
