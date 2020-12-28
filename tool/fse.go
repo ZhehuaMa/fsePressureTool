@@ -283,7 +283,11 @@ func (frame *Frame) getStatistics() {
     }
     for {
         select {
-        case res := <-frame.resultCh:
+        case res, ok := <-frame.resultCh:
+            if !ok {
+                printStatistics()
+                return
+            }
             if res.success {
                 latency := res.latencyMs
                 if maxLatency < latency {
@@ -301,9 +305,6 @@ func (frame *Frame) getStatistics() {
             dropCount += 1
         case <-frame.reportCh:
             printStatistics()
-        case <-frame.endStatisticCh:
-            printStatistics()
-            return
         }
     }
 }
@@ -312,7 +313,6 @@ func (frame *Frame) RunTask(qps int, maxCount int64, threadNum int) {
     frame.startCh = make(chan int64)
     frame.endCh = make(chan struct{})
     frame.resultCh = make(chan *result, threadNum)
-    frame.endStatisticCh = make(chan struct{})
     frame.reportCh = time.NewTicker(time.Second * 10).C
     frame.dropRequestsCh = make(chan struct{}, qps/10)
     frame.totalFeatureNum = maxCount
@@ -345,6 +345,6 @@ forLoop:
     for i := 0; i < threadNum; i++ {
         frame.endCh <- struct{}{}
     }
-    frame.endStatisticCh <- struct{}{}
+    close(frame.resultCh)
     fmt.Println("All threads end")
 }
