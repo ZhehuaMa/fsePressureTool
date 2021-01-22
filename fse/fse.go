@@ -218,5 +218,5 @@ func (t EntityTask) run(featureNum int64) {
 func (frame *Frame) RunTask(maxCount int64) {
 	Ezio.Run()
 	frame.Task.run(maxCount)
-	Ezio.Stop()
+	Ezio.WaitUntilFinish()
 }
