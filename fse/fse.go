@@ -185,7 +185,7 @@ func setEntityTimeLocation(item *ObjectItem, option *TimeLocationOption, num, to
 	}
 
 	timeStep := timeRange / time.Duration(totalFeatureNum) / time.Millisecond
-	item.Time = num*int64(timeStep) + int64(timeStep)/2
+	item.Time = num*int64(timeStep) + int64(timeStep)/2 + option.StartTime
 }
 
 func (t EntityTask) run(featureNum int64) {
