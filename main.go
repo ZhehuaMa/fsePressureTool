@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"fsePressureTool/fse"
 	"github.com/golang/glog"
+	"github.com/zhehuama/fsePressureTool/fse"
 	"os"
 	"strings"
 )
@@ -22,7 +22,7 @@ var (
 	startTimeMs int64
 	endTimeMs   int64
 	maxCount    int64
-	topk        int
+	topK        int
 	featLen     int
 	LocNum      int
 	repos       []string
@@ -36,7 +36,7 @@ func initFlag() {
 	flag.StringVar(&idType, "id", fse.Uid, "ID type: 'uuid' for UUID, 'num' for number sequence, starting from 0")
 	flag.Int64Var(&startTimeMs, "st", 0, "The start time in millisecond, only used in 'entityTask' type")
 	flag.Int64Var(&endTimeMs, "et", 0, "The end time in millisecond, only used in 'entityTask' type")
-	flag.IntVar(&topk, "topk", 3, "Top K")
+	flag.IntVar(&topK, "topk", 3, "Top K")
 	flag.IntVar(&featLen, "len", 384, "The length of feature")
 	flag.IntVar(&LocNum, "loc", 1, "The number of locations, only used in 'entityTask' type")
 	flag.Int64Var(&maxCount, "max", 10, "Maximum times the task is executed")
@@ -84,7 +84,7 @@ func main() {
 		}
 		task := fse.SearchTask{
 			IPPort:        addr,
-			MaxCandidates: topk,
+			MaxCandidates: topK,
 			FeatureLength: featLen,
 		}
 		task.Repositories = repos
