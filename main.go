@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/golang/glog"
-	"github.com/zhehuama/fsePressureTool/fse"
 	"os"
 	"strings"
+
+	"github.com/golang/glog"
+	"github.com/zhehuama/fsePressureTool/fse"
 )
 
 const (
@@ -37,6 +38,7 @@ func initFlag() {
 	flag.Int64Var(&startTimeMs, "st", 0, "The start time in millisecond, only used in 'entityTask' type")
 	flag.Int64Var(&endTimeMs, "et", 0, "The end time in millisecond, only used in 'entityTask' type")
 	flag.IntVar(&topK, "topk", 3, "Top K")
+	flag.Float64Var(&fse.KnnThreshold, "knnThreshold", 0.5, "KNN threshold")
 	flag.IntVar(&featLen, "len", 384, "The length of feature")
 	flag.IntVar(&LocNum, "loc", 1, "The number of locations, only used in 'entityTask' type")
 	flag.Int64Var(&maxCount, "max", 10, "Maximum times the task is executed")

@@ -5,14 +5,15 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"github.com/golang/glog"
-	"github.com/google/uuid"
-	"github.com/zhehuama/Ezio"
 	"math"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/google/uuid"
+	"github.com/zhehuama/Ezio"
 )
 
 const (
@@ -24,6 +25,8 @@ const (
 	Uid = "uuid"
 	Num = "num"
 )
+
+var KnnThreshold float64
 
 func generateDefaultEntityData(value *string) *EntityData {
 	entityData := &EntityData{
@@ -57,6 +60,7 @@ func generateDefaultSearchBody(includeItem *IncludeItem) *SearchBody {
 		Include:          []IncludeItem{*includeItem},
 		IncludeThreshold: 0,
 		MaxCandidates:    3,
+		Options:          make(map[string]string),
 	}
 	return searchBody
 }
@@ -126,10 +130,9 @@ func (t SearchTask) run(featureNum int64) {
 		includeItem := generateDefaultIncludeItem(entityData)
 		searchBody := generateDefaultSearchBody(includeItem)
 		searchBody.MaxCandidates = t.MaxCandidates
+		searchBody.Options["knn_threshold"] = strconv.FormatFloat(KnnThreshold, 'f', 2, 32)
 
-		for _, repo := range t.Repositories {
-			searchBody.Repositories = append(searchBody.Repositories, repo)
-		}
+		searchBody.Repositories = append(searchBody.Repositories, t.Repositories...)
 
 		body, err := json.Marshal(*searchBody)
 		if err != nil {

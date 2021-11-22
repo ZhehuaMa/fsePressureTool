@@ -11,11 +11,12 @@ type IncludeItem struct {
 }
 
 type SearchBody struct {
-	Type             string        `json:"type"`
-	Include          []IncludeItem `json:"include"`
-	IncludeThreshold float32       `json:"include_threshold"`
-	Repositories     []string      `json:"repositories"`
-	MaxCandidates    int           `json:"max_candidates"`
+	Type             string            `json:"type"`
+	Include          []IncludeItem     `json:"include"`
+	IncludeThreshold float32           `json:"include_threshold"`
+	Repositories     []string          `json:"repositories"`
+	MaxCandidates    int               `json:"max_candidates"`
+	Options          map[string]string `json:"options"`
 }
 
 type ObjectItem struct {
@@ -67,6 +68,5 @@ type EntityTask struct {
 }
 
 type Frame struct {
-	Task            task
-	totalFeatureNum int64
+	Task task
 }
