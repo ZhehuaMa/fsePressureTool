@@ -65,7 +65,7 @@ func generateDefaultSearchBody(includeItem *IncludeItem) *SearchBody {
 	return searchBody
 }
 
-func GenerateRandomFeature(featureLength int) []float32 {
+func generateRandomFeature(featureLength int) []float32 {
 	feature := make([]float32, featureLength)
 	var sum float32 = 0
 	rand.Seed(time.Now().UnixNano())
@@ -98,7 +98,7 @@ func generateCompareBody(mObjects, nObjects []CompareObject) *CompareBody {
 	return retCompareBody
 }
 
-func EncodeFeature(feature []float32) *string {
+func encodeFeature(feature []float32) *string {
 	buffer := new(bytes.Buffer)
 	err := binary.Write(buffer, binary.LittleEndian, feature)
 	if err != nil {
@@ -123,8 +123,8 @@ func (t SearchTask) run(featureNum int64) {
 	t.url = httpStr + t.IPPort + prefixUrl + "search"
 	var i int64 = 0
 	for ; i < featureNum; i++ {
-		feature := GenerateRandomFeature(t.FeatureLength)
-		encodedString := EncodeFeature(feature)
+		feature := generateRandomFeature(t.FeatureLength)
+		encodedString := encodeFeature(feature)
 
 		entityData := generateDefaultEntityData(encodedString)
 		includeItem := generateDefaultIncludeItem(entityData)
@@ -150,10 +150,10 @@ func (t CompareTask) run(featureNum int64) {
 	t.url = httpStr + t.IPPort + prefixUrl + "compare"
 	var i int64 = 0
 	for ; i < featureNum; i++ {
-		feature1 := GenerateRandomFeature(t.FeatureLength)
-		encodedString1 := EncodeFeature(feature1)
-		feature2 := GenerateRandomFeature(t.FeatureLength)
-		encodedString2 := EncodeFeature(feature2)
+		feature1 := generateRandomFeature(t.FeatureLength)
+		encodedString1 := encodeFeature(feature1)
+		feature2 := generateRandomFeature(t.FeatureLength)
+		encodedString2 := encodeFeature(feature2)
 
 		entityData1 := generateDefaultEntityData(encodedString1)
 		entityData2 := generateDefaultEntityData(encodedString2)
@@ -191,12 +191,22 @@ func setEntityTimeLocation(item *ObjectItem, option *TimeLocationOption, num, to
 	item.Time = num*int64(timeStep) + int64(timeStep)/2 + option.StartTime
 }
 
+func recordFeatures(record []byte) {
+	if !recordEntity {
+		return
+	}
+	record = append(record, '\n')
+	if _, err := recordsFile.Write(record); err != nil {
+		glog.Errorf("Fail to write record file: %s\n", err.Error())
+	}
+}
+
 func (t EntityTask) run(featureNum int64) {
 	t.url = httpStr + t.IPPort + prefixUrl + t.RepoName + "/entities"
 	var i int64 = 0
 	for ; i < featureNum; i++ {
-		feature := GenerateRandomFeature(t.FeatureLength)
-		encodedString := EncodeFeature(feature)
+		feature := generateRandomFeature(t.FeatureLength)
+		encodedString := encodeFeature(feature)
 		entityData := generateDefaultEntityData(encodedString)
 		var id string
 		if t.IdType == Uid {
@@ -211,6 +221,7 @@ func (t EntityTask) run(featureNum int64) {
 			glog.Errorf("Fail to marshal json: %s\n", err.Error())
 			continue
 		}
+		recordFeatures(body)
 
 		request, _ := http.NewRequest("POST", t.url, bytes.NewReader(body))
 		httpTask := &Ezio.Task{Request: request}
