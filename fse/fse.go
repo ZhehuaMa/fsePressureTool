@@ -179,16 +179,14 @@ func (t CompareTask) run(featureNum int64) {
 func setEntityTimeLocation(item *ObjectItem, option *TimeLocationOption, num, totalFeatureNum int64) {
 	item.LocationID = strconv.Itoa(int(num % int64(option.LocationNum)))
 
-	start := time.Duration(option.StartTime) * time.Millisecond
-	end := time.Duration(option.EndTime) * time.Millisecond
-	timeRange := end - start
-	if timeRange <= 0 {
+	timeRangeInMilli := option.EndTime - option.StartTime
+	if timeRangeInMilli <= 0 {
 		item.Time = 0
 		return
 	}
 
-	timeStep := timeRange / time.Duration(totalFeatureNum) / time.Millisecond
-	item.Time = num*int64(timeStep) + int64(timeStep)/2 + option.StartTime
+	timeStepInMilli := timeRangeInMilli / totalFeatureNum
+	item.Time = num*timeStepInMilli + timeStepInMilli/2 + option.StartTime
 }
 
 func recordFeatures(record []byte) {
